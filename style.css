@@ -227,6 +227,22 @@ h1, h2, h3 { font-weight: 600; letter-spacing: -0.01em; }
   font-size: 0.85rem;
 }
 
+.changelog h3 {
+  margin: 20px 0 8px;
+  font-size: 1rem;
+  color: var(--text);
+}
+.changelog-date {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin: 0;
+}
+.changelog-loading,
+.changelog-error {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
 .footer {
   text-align: center;
   padding: 32px 24px 48px;
