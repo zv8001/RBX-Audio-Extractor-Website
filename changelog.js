@@ -1,23 +1,8 @@
 (function () {
+  "use strict";
+
   var CHANGELOG_URL =
     "https://raw.githubusercontent.com/zv8001/RBX-Audio-Extractor/refs/heads/main/CHANGELOG.md";
-
-  function escapeHtml(str) {
-    return str
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-  }
-
-  function inlineMarkdown(str) {
-    var html = escapeHtml(str);
-    html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
-    html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function (m, text, href) {
-      return '<a href="' + href + '" target="_blank" rel="noopener">' + text + "</a>";
-    });
-    return html;
-  }
 
   function parseLatestEntry(markdown) {
     var lines = markdown.split(/\r?\n/);
@@ -29,8 +14,12 @@
       var versionMatch = line.match(/^##\s+\[([^\]]+)\]\s*-\s*(.+)$/);
 
       if (versionMatch) {
-        if (entry) break; // stop once the first (latest) entry is closed
-        entry = { version: versionMatch[1], date: versionMatch[2].trim(), sections: [] };
+        if (entry) break;
+        entry = {
+          version: versionMatch[1],
+          date: versionMatch[2].trim(),
+          sections: [],
+        };
         section = null;
         continue;
       }
@@ -45,43 +34,58 @@
       }
 
       var itemMatch = line.match(/^[-*]\s+(.+)$/);
-      if (itemMatch && section) {
-        section.items.push(itemMatch[1].trim());
-      }
+      if (itemMatch && section) section.items.push(itemMatch[1].trim());
     }
 
     return entry;
   }
 
+  function addTextElement(parent, tagName, className, text) {
+    var element = document.createElement(tagName);
+    if (className) element.className = className;
+    element.textContent = text;
+    parent.appendChild(element);
+    return element;
+  }
+
   function render(entry) {
     var heading = document.getElementById("changelog-heading");
     var content = document.getElementById("changelog-content");
+    content.replaceChildren();
 
     if (!entry) {
       heading.textContent = "Latest release";
-      content.innerHTML = '<p class="changelog-error">Could not load the changelog right now.</p>';
+      addTextElement(
+        content,
+        "p",
+        "changelog-error",
+        "Could not load the changelog right now."
+      );
       return;
     }
 
     heading.textContent = "Latest release — " + entry.version;
+    addTextElement(content, "p", "changelog-date", entry.date);
 
-    var html = '<p class="changelog-date">' + escapeHtml(entry.date) + "</p>";
     entry.sections.forEach(function (section) {
-      html += "<h3>" + escapeHtml(section.title) + "</h3><ul>";
-      section.items.forEach(function (item) {
-        html += "<li>" + inlineMarkdown(item) + "</li>";
-      });
-      html += "</ul>";
-    });
+      addTextElement(content, "h3", "", section.title);
+      var list = document.createElement("ul");
 
-    content.innerHTML = html;
+      section.items.forEach(function (item) {
+        addTextElement(list, "li", "", item);
+      });
+
+      content.appendChild(list);
+    });
   }
 
   function loadChangelog() {
     fetch(CHANGELOG_URL, { cache: "no-store" })
-      .then(function (res) {
-        if (!res.ok) throw new Error("Failed to fetch changelog: " + res.status);
-        return res.text();
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("Failed to fetch changelog: " + response.status);
+        }
+        return response.text();
       })
       .then(function (markdown) {
         render(parseLatestEntry(markdown));
